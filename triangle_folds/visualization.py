@@ -1,12 +1,14 @@
 from grid import TriangleGrid
 from typing import Dict, Tuple, List
 import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
 import numpy as np
 import os
 
 
 def visualize_grid(grid: TriangleGrid, size: int = 1, extra_space: int = 2, folder_name: str = ''):
-    __draw_triangles(grid)
+    cmap = get_cmap('Spectral', lut=grid.strip_length)
+    __draw_triangles(grid, cmap=cmap)
     __show_save_visualization(folder_name=folder_name)
 
 
@@ -22,11 +24,11 @@ def __draw_board(board_shape: Tuple[int, int, int, int], size: int = 1, extra_sp
     return axs
 
 
-def __draw_triangles(grid: TriangleGrid):
+def __draw_triangles(grid: TriangleGrid, cmap=get_cmap('Spectral')):
     axs = __draw_board(grid.get_grid_shape())
 
-    for one, two, three in grid.get_triangles():
-        triangle = plt.Polygon([one, two, three])
+    for t in grid.get_triangles():
+        triangle = plt.Polygon(t.get_coordinates(1.), facecolor=cmap(t.get_score()))
         axs.add_patch(triangle)
 
 

@@ -75,7 +75,10 @@ class TriangleGrid:
             max_y = max(max_y, y)
         return min_x, min_y, max_x, max_y
 
-    def get_triangles(self) -> List[Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]]:
+    def get_triangles(self) -> List[Triangle]:
+        return [triangle for _, triangle in self.grid.items()]
+
+    def get_triangle_coordinates(self) -> List[Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]]:
         triangles: List[Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]] = []
         for _, triangle in self.grid.items():
             triangles.append(triangle.get_coordinates(1))
