@@ -31,6 +31,14 @@ def __draw_triangles(grid: TriangleGrid, cmap=get_cmap('Spectral')):
         triangle = plt.Polygon(t.get_coordinates(1.), facecolor=cmap(t.get_score()))
         axs.add_patch(triangle)
 
+    __draw_strip(grid, axs)
+
+
+def __draw_strip(grid: TriangleGrid, axs):
+    coordinates: List[Tuple[float, float]] = grid.get_strip_coordinates()
+    strip = plt.Polygon(coordinates, edgecolor='black', facecolor='none')
+    axs.add_patch(strip)
+
 
 def __show_save_visualization(show_vis: bool = True, save_vis: bool = True, vis_name: str = '', folder_name: str = ''):
     if save_vis:

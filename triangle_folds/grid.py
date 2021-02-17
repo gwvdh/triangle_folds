@@ -6,20 +6,16 @@ from enum import Enum
 Fold = Enum('Folds', 'M V')
 
 
-def is_upside_down(i: int):
-    return i % 2 == 1
-
-
 def get_height(side_length: float) -> float:
     return side_length * sqrt(3) / 2
 
 
 class Triangle:
-    def __init__(self, x: int, y: int, length: int):
+    def __init__(self, x: int, y: int, strip_length: int):
         self._x: int = x
         self._y: int = y
         self._score: int = -1
-        self._folds: List[str] = ["." for _ in range(length)]
+        self._folds: List[str] = ["." for _ in range(strip_length)]
 
     def set_score(self, score: int):
         self._score = score
@@ -33,6 +29,9 @@ class Triangle:
     def set_fold(self, count: int, fold: Fold):
         self._folds[count] = fold.name
 
+    def is_upside_down(self):
+        return (self._y % 2 == 1) != (self._x % 2 == 1)
+
     def get_coordinates(self, length: float) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
         """
            2
@@ -42,7 +41,7 @@ class Triangle:
         :return:
         """
         height: float = get_height(side_length=length)
-        upside_down: bool = is_upside_down(self._y) != is_upside_down(self._x)
+        upside_down: bool = self.is_upside_down()
         one = (length * float(self._x) / 2, float(self._y) * height + (height if upside_down else 0))
         two = (length * float(self._x) / 2 + length / 2, float(self._y) * height + (0 if upside_down else height))
         three = (length * float(self._x) / 2 + length, float(self._y) * height + (height if upside_down else 0))
@@ -52,7 +51,7 @@ class Triangle:
 class TriangleGrid:
     def __init__(self, strip_length: int, upside_down: bool = False):
         self.strip_length: int = strip_length
-        self.upside_down: bool = upside_down
+        self._upside_down: bool = upside_down
         self.grid: Dict[Tuple[int, int], Triangle] = {}
 
     def get_triangle(self, x: int, y: int) -> Triangle:
@@ -83,3 +82,29 @@ class TriangleGrid:
         for _, triangle in self.grid.items():
             triangles.append(triangle.get_coordinates(1))
         return triangles
+
+    def get_strip_coordinates(self) -> List[Tuple[float, float]]:
+        row: int = 1 if self._upside_down else 0
+        start_triangle: Triangle = Triangle(0, row, strip_length=self.strip_length)
+        start_coordinates = start_triangle.get_coordinates(1)
+        end_triangle: Triangle = Triangle(self.strip_length, row, strip_length=self.strip_length)
+        end_coordinates = end_triangle.get_coordinates(1)
+        coordinates: List[Tuple[float, float]] = [start_coordinates[0], start_coordinates[1]]
+        if start_triangle.is_upside_down():
+            if end_triangle.is_upside_down():
+                coordinates.append(end_coordinates[1])
+                coordinates.append(end_coordinates[2])
+            else:
+                coordinates.append(end_coordinates[2])
+                coordinates.append(end_coordinates[1])
+        else:
+            if end_triangle.is_upside_down():
+                coordinates.append(end_coordinates[2])
+                coordinates.append(end_coordinates[1])
+            else:
+                coordinates.append(end_coordinates[1])
+                coordinates.append(end_coordinates[2])
+
+        return coordinates
+
+
