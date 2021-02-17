@@ -14,9 +14,10 @@ class TestVisualization(unittest.TestCase):
                 grid.add_triangle(x, y, score=random.randint(0, strip_length))
         visualize_grid(grid)
 
+
 class TestEnumeration(unittest.TestCase):
     def test_brute_force(self):
-        for i in range(20):
+        for i in range(30):
             enumerate_strips([(i, False)])
 
 

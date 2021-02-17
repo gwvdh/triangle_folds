@@ -7,7 +7,6 @@ def enumerate_strips(strips: List[Tuple[int, bool]]):
     for length, flipped in strips:
         grid = TriangleGrid(length, flipped)
         start: Tuple[int, int] = (0, 1 if flipped else 0)
-        max_folds: int = 0
         for i in range(2 ** length):
             fold_amount: int = bin(i).count('1')
             coordinate: Tuple[int, int] = get_coordinate(i, start, length)
@@ -15,12 +14,12 @@ def enumerate_strips(strips: List[Tuple[int, bool]]):
                 triangle: Triangle = grid.get_triangle(*coordinate)
                 if triangle.get_score() > fold_amount:
                     triangle.set_score(fold_amount)
-                    if fold_amount > max_folds:
-                        max_folds = fold_amount
             else:
                 grid.add_triangle(*coordinate, fold_amount)
-                if fold_amount > max_folds:
-                    max_folds = fold_amount
+        max_folds: int = 0
+        for _, triangle in grid.grid.items():
+            if triangle.get_score() > max_folds:
+                max_folds = triangle.get_score()
         visualize_grid(grid, file_name='triangle_length_{}_flipped_{}_max_{}'.format(length, flipped, max_folds))
 
 
