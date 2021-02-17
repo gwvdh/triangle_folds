@@ -14,7 +14,7 @@ class Triangle:
     def __init__(self, x: int, y: int, strip_length: int):
         self._x: int = x
         self._y: int = y
-        self._score: int = -1
+        self._score: int = 100
         self._folds: List[str] = ["." for _ in range(strip_length)]
 
     def set_score(self, score: int):
@@ -47,6 +47,11 @@ class Triangle:
         three = (length * float(self._x) / 2 + length, float(self._y) * height + (height if upside_down else 0))
         return one, two, three
 
+    def get_center(self, length: float) -> Tuple[float, float]:
+        height: float = get_height(side_length=length)
+        base = (length * float(self._x) / 2, float(self._y) * height)
+        return base[0] + length / 2, base[1] + height / 2
+
 
 class TriangleGrid:
     def __init__(self, strip_length: int, upside_down: bool = False):
@@ -57,7 +62,7 @@ class TriangleGrid:
     def get_triangle(self, x: int, y: int) -> Triangle:
         return self.grid.get((x, y))
 
-    def add_triangle(self, x: int, y: int, score: int = -1):
+    def add_triangle(self, x: int, y: int, score: int = 100):
         triangle: Triangle = Triangle(x, y, self.strip_length)
         triangle.set_score(score)
         self.grid[(x, y)] = triangle
