@@ -4,6 +4,14 @@ from visualization import visualize_grid
 
 
 def enumerate_strips(strips: List[Tuple[int, bool]]):
+    """
+    Visualize all given problem instances.
+    This is done using brute force.
+    We enumerate every possible combination of folds, represented as a bit string.
+
+    :param strips: List of problem instances represented by strip length and orientation
+    :return: Creates figures in figures/
+    """
     for length, flipped in strips:
         grid = TriangleGrid(length, flipped)
         start: Tuple[int, int] = (0, 1 if flipped else 0)
@@ -14,8 +22,10 @@ def enumerate_strips(strips: List[Tuple[int, bool]]):
                 triangle: Triangle = grid.get_triangle(*coordinate)
                 if triangle.get_score() > fold_amount:
                     triangle.set_score(fold_amount)
+                    triangle.set_fold(i)
             else:
                 grid.add_triangle(*coordinate, fold_amount)
+                grid.get_triangle(*coordinate).set_fold(i)
         max_folds: int = 0
         for _, triangle in grid.grid.items():
             if triangle.get_score() > max_folds:
@@ -27,7 +37,15 @@ def is_upside_down(x: int, y: int):
     return (y % 2 == 1) != (x % 2 == 1)
 
 
-def get_coordinate(bit_string: int, start: Tuple[int,int], length: int) -> Tuple[int, int]:
+def get_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
+    """
+    Find the coordinate given a bit string (as an integer) representing folds.
+
+    :param bit_string: The bit string representing folds
+    :param start: Starting coordinate of the (static) first triangle
+    :param length: The length of the strip
+    :return: The coordinate of the final triangle in the strip when all folds are folded
+    """
     direction: str = 'B'  # 'B'; base, 'U'; up, 'D'; down
     x_coordinate: int = start[0]
     y_coordinate: int = start[1]
@@ -53,6 +71,3 @@ def get_coordinate(bit_string: int, start: Tuple[int,int], length: int) -> Tuple
             else:
                 raise ValueError('Direction {} does not exist'.format(direction))
     return x_coordinate, y_coordinate
-
-
-
