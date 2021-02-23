@@ -11,7 +11,7 @@ def visualize_grid(grid: TriangleGrid, size: int = 1, extra_space: int = 2,
                    folder_name: str = '', file_name: str = 'visualization'):
     cmap = get_cmap('Spectral', lut=grid.strip_length + 1)
     __draw_triangles(grid, cmap=cmap)
-    __show_save_visualization(folder_name=folder_name, vis_name=file_name)
+    __show_save_visualization(folder_name=folder_name, vis_name=file_name, show_vis=False)
 
 
 def __draw_board(board_shape: Tuple[int, int, int, int], size: int = 1, extra_space: int = 2):
