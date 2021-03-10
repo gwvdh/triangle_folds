@@ -2,16 +2,16 @@ from grid import TriangleGrid
 from typing import Tuple, List
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap, ScalarMappable
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, LogNorm
 import numpy as np
 import os
 
 
 def visualize_grid(grid: TriangleGrid, size: int = 1, extra_space: int = 2,
                    folder_name: str = '', file_name: str = 'visualization'):
-    cmap = get_cmap('Spectral', lut=grid.strip_length + 1)
+    cmap = get_cmap('Spectral', lut=grid.get_max_score() + 1)
     __draw_triangles(grid, cmap=cmap)
-    __show_save_visualization(folder_name=folder_name, vis_name=file_name, show_vis=False)
+    __show_save_visualization(folder_name=folder_name, vis_name=file_name, show_vis=True)
 
 
 def __draw_board(board_shape: Tuple[int, int, int, int], size: int = 1, extra_space: int = 2):
@@ -44,12 +44,12 @@ def __draw_triangles(grid: TriangleGrid, cmap=get_cmap('Spectral')):
     """
     fig, axs = __draw_board(grid.get_grid_shape())
 
-    fig.colorbar(ScalarMappable(norm=Normalize(vmin=0, vmax=cmap.N), cmap=cmap), ticks=range(cmap.N), ax=axs)
+    fig.colorbar(ScalarMappable(norm=LogNorm(), cmap=cmap), ax=axs)
 
-    for t in grid.get_triangles():
+    for t in grid.get_shapes():
         coordinates = t.get_coordinates(grid.side_lengths)
-        triangle = plt.Polygon(coordinates, facecolor=cmap(t.get_score()))
-        axs.add_patch(triangle)
+        shape = plt.Polygon(coordinates, facecolor=cmap(t.get_score()))
+        axs.add_patch(shape)
         # axs.text(*t.get_center(1.), '{}'.format(t.get_score()), fontsize=17)
 
     __draw_strip(grid, axs)

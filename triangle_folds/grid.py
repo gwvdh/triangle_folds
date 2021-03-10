@@ -1,5 +1,6 @@
 from typing import Dict, Tuple, List
-from math import sqrt
+from math import sqrt, floor, ceil
+from abc import abstractmethod, ABC
 
 
 def get_height(side_length: float) -> float:
@@ -12,12 +13,13 @@ def get_height(side_length: float) -> float:
     return side_length * sqrt(3) / 2
 
 
-class Triangle:
+class Shape:
     def __init__(self, x: int, y: int):
         self._x: int = x
         self._y: int = y
         self._score: int = 100
         self._fold_sequence: int = -1
+        self._all_folds: List[int] = []
 
     def set_score(self, score: int):
         self._score = score
@@ -28,9 +30,23 @@ class Triangle:
     def get_folds(self) -> int:
         return self._fold_sequence
 
-    def set_fold(self, fold: int):
-        self._fold_sequence = fold
+    def get_all_folds(self) -> List[int]:
+        return self._all_folds
 
+    def set_folds(self, fold: int):
+        self._fold_sequence = fold
+        self._all_folds.append(fold)
+
+    @abstractmethod
+    def get_coordinates(self, length: float):
+        raise NotImplemented
+
+    @abstractmethod
+    def get_center(self, length: float):
+        raise NotImplemented
+
+
+class Triangle(Shape):
     def is_upside_down(self) -> bool:
         """
         Check whether the current triangle is upside down.
@@ -39,7 +55,7 @@ class Triangle:
         """
         return (self._y % 2 == 1) != (self._x % 2 == 1)
 
-    def get_coordinates(self, length: float) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
+    def get_coordinates(self, length: float) -> List[Tuple[float, float]]:
         """
         Retrieve the coordinates for each of the corners of the triangle given the lengths of the sides.
         The grid coordinates are given in the object.
@@ -57,7 +73,7 @@ class Triangle:
         one = (length * float(self._x) / 2, float(self._y) * height + (height if upside_down else 0))
         two = (length * float(self._x) / 2 + length / 2, float(self._y) * height + (0 if upside_down else height))
         three = (length * float(self._x) / 2 + length, float(self._y) * height + (height if upside_down else 0))
-        return one, two, three
+        return [one, two, three]
 
     def get_center(self, length: float) -> Tuple[float, float]:
         """
@@ -71,29 +87,37 @@ class Triangle:
         return base[0] + length / 2, base[1] + height / 2
 
 
-class TriangleGrid:
-    def __init__(self, strip_length: int, upside_down: bool = False, side_lengths: float = 1.0):
+class Grid:
+    def __init__(self, strip_length: int, side_lengths: float = 1.0):
         self.strip_length: int = strip_length
-        self._upside_down: bool = upside_down
         self.side_lengths: float = side_lengths
-        self.grid: Dict[Tuple[int, int], Triangle] = {}
+        self.grid: Dict[Tuple[int, int], Shape] = {}
 
-    def get_triangle(self, x: int, y: int) -> Triangle:
+    def get_max_score(self) -> int:
+        max_score: int = 0
+        for _, shape in self.grid.items():
+            if shape.get_score() > max_score:
+                max_score = shape.get_score()
+        return max_score
+
+    def get_shape(self, x: int, y: int) -> Shape:
         return self.grid.get((x, y))
 
-    def add_triangle(self, x: int, y: int, score: int = 100):
+    def get_shapes(self) -> List[Shape]:
+        return [shape for _, shape in self.grid.items()]
+
+    @abstractmethod
+    def add_shape(self, x: int, y: int, score: int = 100):
         """
-        Add a triangle to the data structure.
-        A score is also added.
+        Add a shape to the data structure.
+        A scorehis also added.
 
         :param x: x-coordinate
         :param y: y-coordinate
         :param score: Score representing the amount of folds
         :return:
         """
-        triangle: Triangle = Triangle(x, y)
-        triangle.set_score(score)
-        self.grid[(x, y)] = triangle
+        pass
 
     def get_grid_shape(self) -> Tuple[int, int, int, int]:
         """
@@ -112,14 +136,19 @@ class TriangleGrid:
             max_y = max(max_y, y)
         return min_x, min_y, max_x, max_y
 
-    def get_triangles(self) -> List[Triangle]:
-        return [triangle for _, triangle in self.grid.items()]
 
-    def get_triangle_coordinates(self) -> List[Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]]:
-        triangles: List[Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]] = []
-        for _, triangle in self.grid.items():
-            triangles.append(triangle.get_coordinates(self.side_lengths))
-        return triangles
+class TriangleGrid(Grid):
+    def __init__(self, strip_length: int, side_lengths: float = 1.0, upside_down: bool = False):
+        super().__init__(strip_length, side_lengths)
+        self._upside_down: bool = upside_down
+
+    def add_shape(self, x: int, y: int, score: int = 100):
+        triangle: Triangle = Triangle(x, y)
+        triangle.set_score(score)
+        self.grid[(x, y)] = triangle
+
+    def add_triangle(self, x: int, y: int, score: int = 100):
+        self.add_shape(x, y, score)
 
     def get_strip_coordinates(self) -> List[Tuple[float, float]]:
         """
@@ -150,3 +179,52 @@ class TriangleGrid:
                 coordinates.append(end_coordinates[2])
 
         return coordinates
+
+
+class Square(Shape):
+    def get_coordinates(self, length: float) -> List[Tuple[float, float]]:
+        """
+        Return a list of rectangle coordinates.
+        :param length: Length of all sides of the square
+        :return: A list of coordinates representing the corners of the square
+        """
+        return [(self._x + dx * length, self._y + dy * length) for dx, dy in [(0, 0), (1, 0), (1, 1), (0, 1)]]
+
+    def get_center(self, length: float) -> Tuple[float, float]:
+        """
+        Get the center of the square.
+        :param length: Length of all sides of the square
+        :return: A tuple representing the coordinates of the center of the square
+        """
+        return self._x + length / 2, self._y + length / 2
+
+
+class SquareGrid(Grid):
+    def add_shape(self, x: int, y: int, score: int = 100):
+        square: Square = Square(x, y)
+        square.set_score(score)
+        self.grid[(x, y)] = square
+
+    def add_square(self, x: int, y: int, score: int = 100):
+        self.add_shape(x, y, score)
+
+    def get_strip_coordinates(self) -> List[Tuple[float, float]]:
+        """
+        Get the coordinates of a strip of the given length.
+        The coordinates indicate the corners of the polygon.
+
+        :return: A list of tuples representing the corners of the polygon
+        """
+        bottom: List[Tuple[float, float]] = [
+            ((floor(i / 2) + 1) * self.side_lengths, ceil(i / 2) * self.side_lengths)
+            for i in range(self.strip_length + 1)
+        ]
+        top: List[Tuple[float, float]] = [
+            (floor(i / 2) * self.side_lengths, (ceil(i / 2) + 1) * self.side_lengths)
+            for i in range(self.strip_length + 1)
+        ]
+        top.insert(0, (0, 0))
+        top.append((floor(self.strip_length / 2 + 1) * self.side_lengths, ceil(self.strip_length / 2 + 1) * self.side_lengths))
+        bottom.reverse()
+        top.extend(bottom)
+        return top
