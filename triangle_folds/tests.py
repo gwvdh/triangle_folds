@@ -17,13 +17,13 @@ class TestVisualization(unittest.TestCase):
 
 class TestEnumeration(unittest.TestCase):
     def test_brute_force(self):
-        for i in range(20, 21):
+        for i in range(0, 24):
             print("Computing {}".format(i))
             enumerate_strips_brute_force([(i, False)],
-                                         is_triangle_grid=False,
+                                         is_triangle_grid=True,
                                          count=True,
-                                         is_triangle=False,
-                                         log_scale=True,
+                                         is_triangle=True,
+                                         log_scale=False,
                                          draw_strip=True)
 
     def test_max_folds(self):

@@ -26,12 +26,23 @@ def enumerate_strips_brute_force(strips: List[Tuple[int, bool]], is_triangle_gri
         start: Tuple[int, int] = (0, 1 if flipped else 0)
         for i in range(2 ** length):
             add_coordinate_to_grid(grid, i, start, length, count=count, is_triangle=is_triangle)
-        max_folds: int = 0
-        for _, triangle in grid.grid.items():
-            if triangle.get_score() > max_folds:
-                max_folds = triangle.get_score()
-        visualize_grid(grid, file_name='triangle_length_{}_log_count_max_{}'.format(length, max_folds),
-                       log_scale=log_scale, draw_strip=draw_strip)
+        visualization(grid, length, is_triangle_grid, count, is_triangle, log_scale, draw_strip)
+
+
+def visualization(grid: Grid, length: int, is_triangle_grid=True, count: bool = False,
+                  is_triangle: bool = True, log_scale: bool = False, draw_strip: bool = True):
+    max_folds: int = 0
+    for _, triangle in grid.grid.items():
+        if triangle.get_score() > max_folds:
+            max_folds = triangle.get_score()
+    file_name = '{}_max_{}_{}_{}_{}{}'.format(length,
+                                              max_folds,
+                                              'count' if count else 'min',
+                                              'triangle' if is_triangle else 'square',
+                                              'triangle-grid' if is_triangle_grid else 'square-grid',
+                                              '_log' if log_scale else ''
+                                              )
+    visualize_grid(grid, file_name=file_name, log_scale=log_scale, draw_strip=draw_strip)
 
 
 def is_upside_down(x: int, y: int):
@@ -93,12 +104,7 @@ def enumerate_max_folds(strips: List[Tuple[int, bool]], max_folds: int = 4, is_t
                 current_int = current_int >> shift_number
                 current_int += 1
                 current_int = current_int << shift_number
-        max_folds: int = 0
-        for _, shape in grid.grid.items():
-            if shape.get_score() > max_folds:
-                max_folds = shape.get_score()
-        visualize_grid(grid, file_name='triangle_length_{}_flipped_{}_max_{}'.format(length, flipped, max_folds),
-                       log_scale=log_scale, draw_strip=draw_strip)
+        visualization(grid, length, is_triangle_grid, count, is_triangle, log_scale, draw_strip)
 
 
 def get_square_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
