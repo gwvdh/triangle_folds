@@ -1,49 +1,67 @@
 from typing import List, Tuple
-from grid import TriangleGrid, Triangle, Grid, Square, SquareGrid, Shape
+from grid import TriangleGrid, Grid, SquareGrid, Shape
 from visualization import visualize_grid
 
 
-def enumerate_strips(strips: List[Tuple[int, bool]]):
+def enumerate_strips_brute_force(strips: List[Tuple[int, bool]], is_triangle_grid=True, count: bool = False,
+                                 is_triangle: bool = True, log_scale: bool = False, draw_strip: bool = True):
     """
     Visualize all given problem instances.
     This is done using brute force.
     We enumerate every possible combination of folds, represented as a bit string.
 
     :param strips: List of problem instances represented by strip length and orientation
+    :param is_triangle_grid:
+    :param count:
+    :param is_triangle:
+    :param log_scale:
+    :param draw_strip:
     :return: Creates figures in figures/
     """
     for length, flipped in strips:
-        grid = TriangleGrid(length, side_lengths=1.0, upside_down=flipped)
+        if is_triangle_grid:
+            grid: Grid = TriangleGrid(length, side_lengths=1.0, upside_down=flipped)
+        else:
+            grid: Grid = SquareGrid(length, side_lengths=1.0)
         start: Tuple[int, int] = (0, 1 if flipped else 0)
         for i in range(2 ** length):
-            fold_amount: int = bin(i).count('1')
-            add_coordinate_to_grid(grid, i, start, length)
+            add_coordinate_to_grid(grid, i, start, length, count=count, is_triangle=is_triangle)
         max_folds: int = 0
         for _, triangle in grid.grid.items():
             if triangle.get_score() > max_folds:
                 max_folds = triangle.get_score()
-        visualize_grid(grid, file_name='triangle_length_{}_log_count_max_{}'.format(length, max_folds))
+        visualize_grid(grid, file_name='triangle_length_{}_log_count_max_{}'.format(length, max_folds),
+                       log_scale=log_scale, draw_strip=draw_strip)
 
 
 def is_upside_down(x: int, y: int):
     return (y % 2 == 1) != (x % 2 == 1)
 
 
-def add_coordinate_to_grid(grid: Grid, bit: int, start: Tuple[int, int], length: int) -> int:
+def add_coordinate_to_grid(grid: Grid, bit: int, start: Tuple[int, int], length: int,
+                           count: bool = False, is_triangle: bool = True) -> int:
     fold_amount: int = bin(bit).count('1')
-    coordinate: Tuple[int, int] = get_coordinate(bit, start, length)
+    if is_triangle:
+        coordinate: Tuple[int, int] = get_triangle_coordinate(bit, start, length)
+    else:
+        coordinate: Tuple[int, int] = get_square_coordinate(bit, start, length)
     if coordinate in grid.grid:
-        triangle: Shape = grid.get_shape(*coordinate)
-        triangle.set_score(triangle.get_score() + 1)
-        if triangle.get_score() > fold_amount:
-            triangle.set_folds(bit)
+        shape: Shape = grid.get_shape(*coordinate)
+        if count:
+            shape.set_score(shape.get_score() + 1)
+        else:
+            if shape.get_score() > fold_amount:
+                shape.set_score(fold_amount)
+        if shape.get_score() > fold_amount:
+            shape.set_folds(bit)
     else:
         grid.add_shape(*coordinate, fold_amount)
         grid.get_shape(*coordinate).set_folds(bit)
     return fold_amount
 
 
-def enumerate_max_folds(strips: List[Tuple[int, bool]], max_folds: int = 4):
+def enumerate_max_folds(strips: List[Tuple[int, bool]], max_folds: int = 4, is_triangle_grid=True, count: bool = False,
+                        is_triangle: bool = True, log_scale: bool = False, draw_strip: bool = True):
     """
     Visualize all given problem instances.
     We enumerate every possible combination of folds with a maximum amount of folds,
@@ -51,14 +69,23 @@ def enumerate_max_folds(strips: List[Tuple[int, bool]], max_folds: int = 4):
 
     :param strips: List of problem instances represented by strip length and orientation
     :param max_folds: Maximum amount of folds
+    :param is_triangle_grid:
+    :param count:
+    :param is_triangle:
+    :param log_scale:
+    :param draw_strip:
     :return: Creates figures in figures/
     """
     for length, flipped in strips:
-        grid = TriangleGrid(length)
+        if is_triangle_grid:
+            grid = TriangleGrid(length)
+        else:
+            grid = SquareGrid(length)
         start: Tuple[int, int] = (0, 1 if flipped else 0)
         current_int: int = 0
         while current_int < 2 ** length:
-            fold_amount: int = add_coordinate_to_grid(grid, current_int, start, length)
+            fold_amount: int = add_coordinate_to_grid(grid, current_int, start, length,
+                                                      count=count, is_triangle=is_triangle)
             if fold_amount < max_folds:
                 current_int += 1
             else:
@@ -67,10 +94,11 @@ def enumerate_max_folds(strips: List[Tuple[int, bool]], max_folds: int = 4):
                 current_int += 1
                 current_int = current_int << shift_number
         max_folds: int = 0
-        for _, triangle in grid.grid.items():
-            if triangle.get_score() > max_folds:
-                max_folds = triangle.get_score()
-        visualize_grid(grid, file_name='triangle_length_{}_flipped_{}_max_{}'.format(length, flipped, max_folds))
+        for _, shape in grid.grid.items():
+            if shape.get_score() > max_folds:
+                max_folds = shape.get_score()
+        visualize_grid(grid, file_name='triangle_length_{}_flipped_{}_max_{}'.format(length, flipped, max_folds),
+                       log_scale=log_scale, draw_strip=draw_strip)
 
 
 def get_square_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
@@ -103,7 +131,7 @@ def get_square_coordinate(bit_string: int, start: Tuple[int, int], length: int) 
     return x_coordinate, y_coordinate
 
 
-def get_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
+def get_triangle_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
     """
     Find the coordinate given a bit string (as an integer) representing folds.
 

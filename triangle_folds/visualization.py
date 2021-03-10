@@ -1,4 +1,4 @@
-from grid import TriangleGrid
+from grid import Grid
 from typing import Tuple, List
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap, ScalarMappable
@@ -7,19 +7,17 @@ import numpy as np
 import os
 
 
-def visualize_grid(grid: TriangleGrid, size: int = 1, extra_space: int = 2,
-                   folder_name: str = '', file_name: str = 'visualization'):
-    cmap = get_cmap('Spectral', lut=grid.get_max_score() + 1)
-    __draw_triangles(grid, cmap=cmap)
+def visualize_grid(grid: Grid, folder_name: str = '', file_name: str = 'visualization',
+                   log_scale: bool = False, draw_strip: bool = True):
+    __draw_shapes(grid, log_scale=log_scale, draw_strip=draw_strip)
     __show_save_visualization(folder_name=folder_name, vis_name=file_name, show_vis=True)
 
 
-def __draw_board(board_shape: Tuple[int, int, int, int], size: int = 1, extra_space: int = 2):
+def __draw_board(board_shape: Tuple[int, int, int, int], extra_space: int = 2):
     """
     Draw the figure and set the size of the canvas.
 
     :param board_shape: Shape and size of the board
-    :param size:
     :param extra_space: Extra space to add to the figure
     :return:
     """
@@ -34,28 +32,34 @@ def __draw_board(board_shape: Tuple[int, int, int, int], size: int = 1, extra_sp
     return fig, axs
 
 
-def __draw_triangles(grid: TriangleGrid, cmap=get_cmap('Spectral')):
+def __draw_shapes(grid: Grid, log_scale: bool = True, draw_strip: bool = True):
     """
     Create the figures and draw the triangles with a color map.
 
     :param grid: The grid containing all triangles with their scores
-    :param cmap: The color map. Default is spectral
     :return:
     """
+    color_map = get_cmap('Spectral', lut=grid.get_max_score() + 1)
+
     fig, axs = __draw_board(grid.get_grid_shape())
 
-    fig.colorbar(ScalarMappable(norm=LogNorm(), cmap=cmap), ax=axs)
+    norm = Normalize(vmin=0, vmax=grid.get_max_score() + 1)
+    if log_scale:
+        norm = LogNorm(vmin=1, vmax=grid.get_max_score() + 1)
+
+    fig.colorbar(ScalarMappable(norm=norm, cmap=color_map), ax=axs)
 
     for t in grid.get_shapes():
         coordinates = t.get_coordinates(grid.side_lengths)
-        shape = plt.Polygon(coordinates, facecolor=cmap(t.get_score()))
+        shape = plt.Polygon(coordinates, facecolor=color_map(norm(t.get_score())))
         axs.add_patch(shape)
         # axs.text(*t.get_center(1.), '{}'.format(t.get_score()), fontsize=17)
 
-    __draw_strip(grid, axs)
+    if draw_strip:
+        __draw_strip(grid, axs)
 
 
-def __draw_strip(grid: TriangleGrid, axs):
+def __draw_strip(grid: Grid, axs):
     """
     Draw the strip which we are folding.
 

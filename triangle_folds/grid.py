@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, List
 from math import sqrt, floor, ceil
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 
 
 def get_height(side_length: float) -> float:
@@ -100,6 +100,17 @@ class Grid:
                 max_score = shape.get_score()
         return max_score
 
+    def get_max_score_shape(self) -> Shape:
+        max_score: int = 0
+        max_shape: Shape or None = None
+        for _, shape in self.grid.items():
+            if shape.get_score() > max_score:
+                max_score = shape.get_score()
+                max_shape = shape
+        if max_shape is None:
+            raise ValueError
+        return max_shape
+
     def get_shape(self, x: int, y: int) -> Shape:
         return self.grid.get((x, y))
 
@@ -107,10 +118,14 @@ class Grid:
         return [shape for _, shape in self.grid.items()]
 
     @abstractmethod
+    def get_strip_coordinates(self) -> List[Tuple[float, float]]:
+        pass
+
+    @abstractmethod
     def add_shape(self, x: int, y: int, score: int = 100):
         """
         Add a shape to the data structure.
-        A scorehis also added.
+        A score is also added.
 
         :param x: x-coordinate
         :param y: y-coordinate
@@ -224,7 +239,8 @@ class SquareGrid(Grid):
             for i in range(self.strip_length + 1)
         ]
         top.insert(0, (0, 0))
-        top.append((floor(self.strip_length / 2 + 1) * self.side_lengths, ceil(self.strip_length / 2 + 1) * self.side_lengths))
+        top.append((floor(self.strip_length / 2 + 1) * self.side_lengths,
+                    ceil(self.strip_length / 2 + 1) * self.side_lengths))
         bottom.reverse()
         top.extend(bottom)
         return top
