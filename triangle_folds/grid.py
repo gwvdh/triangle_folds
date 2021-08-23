@@ -3,6 +3,10 @@ from math import sqrt, floor, ceil
 from abc import abstractmethod
 
 
+def is_upside_down(x: int, y: int):
+    return (y % 2 == 1) != (x % 2 == 1)
+
+
 def get_height(side_length: float) -> float:
     """
     Get the height of an equilateral triangle given the side lengths.
@@ -13,13 +17,92 @@ def get_height(side_length: float) -> float:
     return side_length * sqrt(3) / 2
 
 
+def get_triangle_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
+    """
+    Find the coordinate given a bit string (as an integer) representing folds.
+
+    :param bit_string: The bit string representing folds
+    :param start: Starting coordinate of the (static) first triangle
+    :param length: The length of the strip
+    :return: The coordinate of the final triangle in the strip when all folds are folded
+    """
+    direction: str = 'B'  # 'B'; base, 'U'; up, 'D'; down
+    x_coordinate: int = start[0]
+    y_coordinate: int = start[1]
+    for crease in range(length):
+        if bit_string & (1 << crease):  # If the ith crease is folded
+            if is_upside_down(x_coordinate, y_coordinate):
+                if direction == 'B':
+                    direction = 'U'
+                elif direction == 'U':
+                    direction = 'D'
+                else:
+                    direction = 'B'
+            else:
+                if direction == 'B':
+                    direction = 'D'
+                elif direction == 'U':
+                    direction = 'B'
+                else:
+                    direction = 'U'
+        else:
+            if direction == 'B':
+                x_coordinate += 1
+            elif direction == 'U':
+                if is_upside_down(x_coordinate, y_coordinate):
+                    y_coordinate += 1
+                else:
+                    x_coordinate -= 1
+            elif direction == 'D':
+                if is_upside_down(x_coordinate, y_coordinate):
+                    x_coordinate -= 1
+                else:
+                    y_coordinate -= 1
+            else:
+                raise ValueError('Direction {} does not exist'.format(direction))
+    return x_coordinate, y_coordinate
+
+
+def get_square_coordinate(bit_string: int, start: Tuple[int, int], length: int) -> Tuple[int, int]:
+    direction: str = 'NE'
+    x_coordinate: int = start[0]
+    y_coordinate: int = start[1]
+    for crease in range(length):
+        if bit_string & (1 << crease):
+            if crease % 2 == 0:
+                if 'N' in direction:
+                    direction = direction.replace('N', 'S')
+                else:
+                    direction = direction.replace('S', 'N')
+            else:
+                if 'W' in direction:
+                    direction = direction.replace('W', 'E')
+                else:
+                    direction = direction.replace('E', 'W')
+        else:
+            if crease % 2 == 0:
+                if 'N' in direction:
+                    y_coordinate = y_coordinate + 1
+                else:
+                    y_coordinate = y_coordinate - 1
+            else:
+                if 'E' in direction:
+                    x_coordinate = x_coordinate + 1
+                else:
+                    x_coordinate = x_coordinate - 1
+    return x_coordinate, y_coordinate
+
+
 class Shape:
     def __init__(self, x: int, y: int):
         self._x: int = x
         self._y: int = y
         self._score: int = 100
-        self._fold_sequence: int = -1
+        self._fold_sequence: int = int('1'*90, 2)
         self._all_folds: List[int] = []
+
+    def get_grid_coordinates(self):
+        return self._x, self._y
 
     def set_score(self, score: int):
         self._score = score
@@ -34,7 +117,8 @@ class Shape:
         return self._all_folds
 
     def set_folds(self, fold: int):
-        self._fold_sequence = fold
+        if bin(fold).count('1') < bin(self._fold_sequence).count('1'):
+            self._fold_sequence = fold
         self._all_folds.append(fold)
 
     @abstractmethod
@@ -92,6 +176,20 @@ class Grid:
         self.strip_length: int = strip_length
         self.side_lengths: float = side_lengths
         self.grid: Dict[Tuple[int, int], Shape] = {}
+
+    def adjacency_matrix(self) -> Dict[Tuple[Shape, Shape], int]:
+        matrix: Dict[Tuple[Shape, Shape], int] = {}
+        for _, shape_1 in self.grid.items():
+            for _, shape_2 in self.grid.items():
+                fold_amount: int = bin(shape_1.get_folds() ^ shape_2.get_folds()).count('1')
+                matrix[(shape_1, shape_2)] = fold_amount
+        return matrix
+
+    def print_adjacency_matrix(self):
+        matrix: Dict[Tuple[Shape, Shape], int] = self.adjacency_matrix()
+        for shapes, dist in matrix.items():
+            if dist > 6:
+                raise ValueError
 
     def get_max_score(self) -> int:
         max_score: int = 0
@@ -151,6 +249,26 @@ class Grid:
             max_y = max(max_y, y)
         return min_x, min_y, max_x, max_y
 
+    def add_coordinate(self, bit: int, start: Tuple[int, int], length: int,
+                       count: bool = False, is_triangle: bool = True) -> int:
+        fold_amount: int = bin(bit).count('1')
+        if is_triangle:
+            coordinate: Tuple[int, int] = get_triangle_coordinate(bit, start, length)
+        else:
+            coordinate: Tuple[int, int] = get_square_coordinate(bit, start, length)
+        if coordinate in self.grid:
+            shape: Shape = self.get_shape(*coordinate)
+            if count:
+                shape.set_score(shape.get_score() + 1)
+            else:
+                if shape.get_score() > fold_amount:
+                    shape.set_score(fold_amount)
+            shape.set_folds(bit)
+        else:
+            self.add_shape(*coordinate, fold_amount)
+            self.get_shape(*coordinate).set_folds(bit)
+        return fold_amount
+
 
 class TriangleGrid(Grid):
     def __init__(self, strip_length: int, side_lengths: float = 1.0, upside_down: bool = False):
@@ -194,6 +312,9 @@ class TriangleGrid(Grid):
                 coordinates.append(end_coordinates[2])
 
         return coordinates
+
+    def get_strip_triangles(self):
+        return [self.grid[(i, 0)] for i in range(self.strip_length, 0, -1)]
 
 
 class Square(Shape):

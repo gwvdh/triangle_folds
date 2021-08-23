@@ -39,7 +39,10 @@ def __draw_shapes(grid: Grid, log_scale: bool = True, draw_strip: bool = True):
     :param grid: The grid containing all triangles with their scores
     :return:
     """
-    color_map = get_cmap('Spectral', lut=grid.get_max_score() + 1)
+    if log_scale:
+        color_map = get_cmap('Spectral', lut=grid.get_max_score() + 1)
+    else:
+        color_map = get_cmap('Oranges', lut=grid.get_max_score() + 1)
 
     fig, axs = __draw_board(grid.get_grid_shape())
 
